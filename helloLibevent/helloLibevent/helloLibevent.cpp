@@ -61,24 +61,35 @@ void accept_cb(evutil_socket_t fd, short events, void* arg)
 
 void socket_read_cb(evutil_socket_t fd, short events, void* arg)
 {
-	char msg[4096];
+	DWORD dwBytesRead, dwBytesWrite;
+	char msg[4096] = { 0 };
 	struct event* ev = (struct event*)arg;
-	int len = _read(fd, msg, sizeof(msg) - 1);
-
+/*	int len = _read(fd, msg, sizeof(msg) - 1);
 	if (len <= 0) {
 		printf("some error happen when read\n");
 		event_free(ev);
 		_close(fd);
 		return;
 	}
-
 	msg[len] = '\0';
-	printf("recv the client msg: %s\n", msg);
+	*/
+	int len = ReadFile((HANDLE)fd, msg, sizeof(msg) - 1, &dwBytesRead, NULL);
+	if (len && 0 == dwBytesRead) {
+		fprintf(stderr, "End of File");
+		event_del(ev);
+		return;
+	}
 
-	char reply_msg[4096] = "I have receive the msg: ";
-	strcat_s(reply_msg + strlen(reply_msg), strlen(reply_msg), msg);
+	if (dwBytesRead > 0) {
+		msg[dwBytesRead] = '\0';
+		printf("recv the client msg: %s\n", msg);
 
-	_write(fd, reply_msg, strlen(reply_msg));
+		char reply_msg[4096] = "I have receive the msg: ";
+		strcat_s(reply_msg + strlen(reply_msg), strlen(reply_msg), msg);
+
+		//_write(fd, reply_msg, strlen(reply_msg));
+		WriteFile((HANDLE)fd, reply_msg, strlen(reply_msg), &dwBytesWrite, NULL);
+	}
 }
 
 typedef struct sockaddr SA;
@@ -118,14 +129,3 @@ error:
 
 	return -1;
 }
-
-// 运行程序: Ctrl + F5 或调试 >“开始执行(不调试)”菜单
-// 调试程序: F5 或调试 >“开始调试”菜单
-
-// 入门使用技巧: 
-//   1. 使用解决方案资源管理器窗口添加/管理文件
-//   2. 使用团队资源管理器窗口连接到源代码管理
-//   3. 使用输出窗口查看生成输出和其他消息
-//   4. 使用错误列表窗口查看错误
-//   5. 转到“项目”>“添加新项”以创建新的代码文件，或转到“项目”>“添加现有项”以将现有代码文件添加到项目
-//   6. 将来，若要再次打开此项目，请转到“文件”>“打开”>“项目”并选择 .sln 文件
